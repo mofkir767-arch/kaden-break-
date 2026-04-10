@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: /users/{userId}
+    // Document ID: userId (Auth UID)
+    // Fields:
+    //   - uid: string (required) - Auth UID
+    //   - displayName: string (optional)
+    //   - preferences: map (optional) - Learned preferences
+    //   - habits: list (optional) - Detected habits
+    //   - memorySummary: string (optional) - Long-term memory summary
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: /users/{userId}/messages/{messageId}
+    // Document ID: auto-generated
+    // Fields:
+    //   - uid: string (required) - User UID
+    //   - role: string (required) - 'user' or 'model'
+    //   - content: string (required) - Message text
+    //   - timestamp: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "mofkir767@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'updatedAt']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidMessage(data) {
+      return data.keys().hasAll(['uid', 'role', 'content', 'timestamp']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.role in ['user', 'model'] &&
+             data.content is string && data.content.size() < 10000 &&
+             data.timestamp is timestamp;
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['uid', 'text', 'completed', 'createdAt']) &&
+             data.uid is string && data.uid == request.auth.uid &&
+             data.text is string && data.text.size() < 500 &&
+             data.completed is bool &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if (isOwner(userId) && isValidUser(request.resource.data)) || isAdmin();
+      
+      match /messages/{messageId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidMessage(request.resource.data);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /tasks/{taskId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidTask(request.resource.data);
+        allow update: if isOwner(userId) && isValidTask(request.resource.data);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "Hydra AI Assistant",
+  "description": "A futuristic, voice-enabled AI agent with memory and personalized learning capabilities.",
+  "requestFramePermissions": ["microphone"]
+}

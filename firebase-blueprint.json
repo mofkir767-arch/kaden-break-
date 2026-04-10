@@ -1,0 +1,56 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user preferences, habits, and learned information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string" },
+        "preferences": { "type": "object", "description": "Learned preferences (e.g. tone, interests)" },
+        "habits": { "type": "array", "items": { "type": "string" }, "description": "Detected habits" },
+        "memorySummary": { "type": "string", "description": "A condensed summary of past interactions for long-term memory" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "updatedAt"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A single message in a conversation.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "User UID" },
+        "role": { "type": "string", "enum": ["user", "model"] },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "role", "content", "timestamp"]
+    },
+    "TodoTask": {
+      "title": "Todo Task",
+      "description": "A task in the user's to-do list.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "text": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "text", "completed", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile and learned data"
+    },
+    "/users/{userId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "History of messages for memory recall"
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "TodoTask",
+      "description": "User's to-do list tasks"
+    }
+  }
+}
